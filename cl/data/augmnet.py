@@ -3,9 +3,22 @@ import random
 import numpy as np
 import torch
 from PIL import Image, ImageFilter, ImageOps
+from torch.nn.functional import one_hot
 from torchvision import transforms
 
 MEAN, STD = (0.082811184, 0.22163138)
+
+
+class GaussianBlur(object):
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, img):
+        if random.random() < self.p:
+            sigma = random.random() * 1.9 + 0.1
+            return img.filter(ImageFilter.GaussianBlur(sigma))
+        else:
+            return img
 
 
 class Solarization(object):
@@ -19,28 +32,51 @@ class Solarization(object):
             return img
 
 
-VCTransform = transforms.Normalize(mean=[MEAN], std=[STD])
+VCTransform = transforms.Compose(
+    [
+        transforms.Resize((84, 84)),
+        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+    ]
+)
 
 
 class BarlowAugment:
     def __init__(self):
         self.transform = transforms.Compose(
             [
-                transforms.RandomResizedCrop(20),
+                transforms.RandomResizedCrop(84),
                 transforms.RandomHorizontalFlip(p=0.5),
-                transforms.GaussianBlur((3, 3), (0.1, 2.0)),
-                transforms.RandomSolarize(threshold=0.2, p=0.0),
-                transforms.Normalize(mean=[MEAN], std=[STD]),
+                transforms.RandomApply(
+                    [
+                        transforms.ColorJitter(
+                            brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
+                        )
+                    ],
+                    p=0.8,
+                ),
+                transforms.RandomGrayscale(p=0.2),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
 
         self.transform_prime = transforms.Compose(
             [
-                transforms.RandomResizedCrop(20),
+                transforms.RandomResizedCrop(84),
                 transforms.RandomHorizontalFlip(p=0.5),
-                transforms.GaussianBlur((3, 3), (0.1, 2.0)),
-                transforms.RandomSolarize(threshold=0.5, p=0.0),
-                transforms.Normalize(mean=[MEAN], std=[STD]),
+                transforms.RandomApply(
+                    [
+                        transforms.ColorJitter(
+                            brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1
+                        )
+                    ],
+                    p=0.8,
+                ),
+                transforms.RandomGrayscale(p=0.2),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
 
@@ -63,26 +99,9 @@ class Corrupt:
         return x, x_
 
 
-def one_hot(x, num_classes, on_value=1.0, off_value=0.0, device="cuda"):
-    x = x.long().view(-1, 1)
-    return torch.full((x.size()[0], num_classes), off_value, device=device).scatter_(
-        1, x, on_value
-    )
-
-
-def mixup_target(target, num_classes, lam=1.0, smoothing=0.0, device="cuda"):
-    off_value = smoothing / num_classes
-    on_value = 1.0 - smoothing + off_value
-    y1 = one_hot(
-        target, num_classes, on_value=on_value, off_value=off_value, device=device
-    )
-    y2 = one_hot(
-        target.flip(0),
-        num_classes,
-        on_value=on_value,
-        off_value=off_value,
-        device=device,
-    )
+def mixup_target(target, num_classes, lam=1.0, device="cuda"):
+    y1 = one_hot(target, num_classes).to(device)
+    y2 = one_hot(target.flip(0), num_classes).to(device)
     return y1 * lam + y2 * (1.0 - lam)
 
 
@@ -121,5 +140,5 @@ class Mixup:
                 x[i] = x[i] * lam + x_orig[j] * (1 - lam)
 
         lam = torch.tensor(lam_batch, device=x.device, dtype=x.dtype).unsqueeze(1)
-        target = mixup_target(target, self.num_classes, lam, 0, x.device)
+        target = mixup_target(target, self.num_classes, lam, x.device)
         return x, target

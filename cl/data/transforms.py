@@ -13,7 +13,7 @@ class ContinousNWays(TaskTransform):
         self.labels = list(range(args.n_class))
 
     def new_task(self):
-        if self.id % 14 == 0:
+        if self.id % 20 == 0:
             self.id = 0
         task_description = []
         labels_to_indices = dict(self.dataset.labels_to_indices)

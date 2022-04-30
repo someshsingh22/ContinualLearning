@@ -32,7 +32,7 @@ class VCResNet(nn.Module):
         super(VCResNet, self).__init__()
         self.args = args
         self.resnet = resnet18(num_classes=args.n_class)
-        self.resnet.conv1 = ResNetConv1()
+        # self.resnet.conv1 = ResNetConv1()
 
 
 class VCResNetSlow(VCResNet):
