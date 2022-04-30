@@ -3,9 +3,9 @@ import math
 import torch
 from torch import nn
 
-from dn.data import BarlowAugment, Corrupt, VCTransform
-from dn.models.extractor import LSTMFast, LSTMSlow, VCResNetFast, VCResNetSlow
-from dn.models.memory import Memory
+from cl.data import BarlowAugment, Corrupt, VCTransform
+from cl.models.extractor import LSTMFast, LSTMSlow, VCResNetFast, VCResNetSlow
+from cl.models.memory import Memory
 
 
 class DualNetVC(torch.nn.Module):

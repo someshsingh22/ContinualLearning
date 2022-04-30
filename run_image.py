@@ -13,9 +13,9 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 # import custom libraries
-from dn.data import ContinousNWays, ImageData, MetaLoader, Mixup, MyDS
-from dn.models import DualNetVC as DualNet
-from dn.utils import VCMetrics, checkpoint, deterministic, load_image_data_pickle
+from cl.data import ContinousNWays, ImageData, MetaLoader, Mixup, MyDS
+from cl.models import DualNetVC as DualNet
+from cl.utils import VCMetrics, checkpoint, deterministic, load_image_data_pickle
 
 # set logging
 logging.basicConfig(
