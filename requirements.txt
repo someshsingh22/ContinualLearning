@@ -1,8 +1,12 @@
 torch
 torchvision
 learn2learn
-scikit-image
 numpy
 pandas
 scikit-learn
 tqdm
+transformers
+
+black
+isort
+flake8

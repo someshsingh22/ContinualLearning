@@ -18,14 +18,6 @@ def deterministic(seed):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
-
-def load_image_data_pickle(path):
-    # load image data from pickle file given path
-    with open(path, "rb") as f:
-        data = pickle.load(f)
-    return data
-
-
 def checkpoint(run, model, optimizer, ssl_optimizer, args):
     """
     Save model and optimizer state to file.
