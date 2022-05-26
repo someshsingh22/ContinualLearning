@@ -99,6 +99,9 @@ if __name__ == "__main__":
         test_data, transforms, num_tasks=args.n_class // args.n_ways
     )
 
+    fo
+
+    
     with tqdm(
         range(args.n_runs), desc="Runs Loop", leave=False, position=0, total=args.n_runs
     ) as pbar:
@@ -123,6 +126,7 @@ if __name__ == "__main__":
                 position=0,
             ) as outer:
                 for task, train_loader in outer:
+                    
                     logging.info("Running Task {}".format(task))
                     model.train()
                     if task > 0:
