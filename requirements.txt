@@ -6,6 +6,7 @@ pandas
 scikit-learn
 tqdm
 transformers
+sklearn
 
 black
 isort
