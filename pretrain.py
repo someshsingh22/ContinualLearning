@@ -29,8 +29,6 @@ if __name__ == "__main__":
     set_seed(42)
 
     text_column_name = "text"
-    max_seq_length = 64
-    padding = "max_length"
     raw_datasets = load_dataset("clinc_oos", "plus")
     tokenized_datasets = raw_datasets.map(
         lambda examples: tokenizer(examples[text_column_name]),
