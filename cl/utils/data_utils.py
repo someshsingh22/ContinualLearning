@@ -7,7 +7,9 @@ class DataPreprocessing:
         self.metric = metric
 
     def group_texts(self, examples):
-        concatenator = lambda x: list(chain(*x)) if isinstance(x[0], list) else x
+        def concatenator(x):
+            return list(chain(*x)) if isinstance(x[0], list) else x
+
         concatenated_examples = {k: concatenator(examples[k]) for k in examples.keys()}
         total_length = len(concatenated_examples[list(examples.keys())[0]])
         if total_length >= self.block_size:
