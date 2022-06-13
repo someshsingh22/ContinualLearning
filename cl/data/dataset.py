@@ -15,30 +15,30 @@ from torch.utils.data import DataLoader
 
 class MetaLoader(object):
     """
-    Generator of dataloaders for the given dataset.
+    Generator of datasets for the given dataset.
     """
 
-    def __init__(self, dataset_name, args):
+    def __init__(self, dataset_name, args, test=False):
         self.args = args
         self.dataset = load_dataset(dataset_name)
-        self.loaders = self.create_loaders(
-            args.batch_size, args.shuffle, args.num_workers
-        )
+        if test:
+            self.dataset = self.dataset["test"]
+        self.tasks = []
+        for label in range(0, args.num_classes, args.num_classes_per_loader):
+            start, end = label, label + args.num_classes_per_loader
+            self.datasets.append(self.create_dataset(start, end, test))
 
-    def create_loaders(self, batch_size, shuffle, num_workers):
+    def create_dataset(self, start, end, test):
         """
-        Create dataloaders for given huggingface dataset of given labels.
+        Create a dataset for the given label range.
         """
-        loaders = []
-        for label in range(0, self.args.num_classes, self.args.num_classes_per_loader):
-            pass
-        return loaders
+        pass
 
     def __getitem__(self, idx):
-        return self.loaders[idx]
+        return self.datasets[idx]
 
     def __len__(self):
-        return len(self.loaders)
+        return len(self.datasets)
 
 
 def preprocess_for_ssl(tokenized_datasets, Preprocessor):
@@ -47,9 +47,8 @@ def preprocess_for_ssl(tokenized_datasets, Preprocessor):
         batched=True,
         desc=f"Grouping texts in chunks of {Preprocessor.block_size}",
     )
-    train_dataset, eval_dataset, test_dataset = (
+    train_dataset, eval_dataset = (
         lm_datasets["train"],
         lm_datasets["validation"],
-        lm_datasets["test"],
     )
-    return train_dataset, eval_dataset, test_dataset
+    return train_dataset, eval_dataset
