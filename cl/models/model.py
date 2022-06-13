@@ -1,8 +1,7 @@
 import torch.nn as nn
 from transformers import AutoModelForMaskedLM
 
-from cl.models.bert import FastBertModel
-from cl.models.gpt import FastGPT2DistilModel
+from cl.models import FastModel
 
 
 class SlowLearner(nn.Module):
@@ -22,13 +21,13 @@ class SlowLearner(nn.Module):
 
 
 class FastLearner(nn.Module):
-    def __init__(self, h, out, model_name, FastModel=FastGPT2DistilModel):
+    def __init__(self, h, out, model_name):
         super(FastLearner, self).__init__()
         self.h = h
         self.out = out
         self.model_name = model_name
 
-        self.lm = FastModel.from_pretrained(self.model_name)
+        self.lm = FastModel[self.model_name].from_pretrained(self.model_name)
         self.linear = nn.Linear(h, out)
         self.relu = nn.ReLU()
 
