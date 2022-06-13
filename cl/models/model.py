@@ -51,7 +51,7 @@ class SlowLearner(nn.Module):
     def ssl_causal_lm(self, data, epoch):
         train_dataset, eval_dataset, test_dataset = preprocess_for_ssl(
             data,
-            self.args.block_size,
+            self.preprocessor,
         )
         trainer = Trainer(
             model=self.slow_learner,

@@ -10,7 +10,7 @@ block_size = min(tokenizer.model_max_length, 1024)
 """
 
 
-def preprocess_for_ssl(tokenized_datasets, Preprocessor, args):
+def preprocess_for_ssl(tokenized_datasets, Preprocessor):
     lm_datasets = tokenized_datasets.map(
         Preprocessor.group_texts,
         batched=True,
