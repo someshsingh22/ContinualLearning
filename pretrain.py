@@ -67,3 +67,4 @@ if __name__ == "__main__":
     trainer.log_metrics("train", metrics)
     trainer.save_metrics("train", metrics)
     trainer.save_state()
+    
