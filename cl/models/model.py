@@ -6,7 +6,7 @@ from cl.models.gpt import FastGPT2DistilModel
 
 
 class SlowLearner(nn.Module):
-    def __init__(self, h, out, model_name="distilgpt2"):
+    def __init__(self, h, out, model_name):
         super(SlowLearner, self).__init__()
         self.h = h
         self.out = out
@@ -22,8 +22,12 @@ class SlowLearner(nn.Module):
 
 
 class FastLearner(nn.Module):
-    def __init__(self, h, out, FastModel=FastGPT2DistilModel):
+    def __init__(self, h, out, model_name, FastModel=FastGPT2DistilModel):
         super(FastLearner, self).__init__()
+        self.h = h
+        self.out = out
+        self.model_name = model_name
+
         self.lm = FastModel.from_pretrained(self.model_name)
         self.linear = nn.Linear(h, out)
         self.relu = nn.ReLU()
