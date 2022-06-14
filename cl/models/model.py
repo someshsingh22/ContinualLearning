@@ -4,15 +4,16 @@ from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
-    DataCollatorWithPadding,
     Trainer,
-    TrainingArguments,
     default_data_collator,
+    DataCollatorWithPadding,
+    TrainingArguments,
 )
 
-from cl.data import preprocess_for_meta_cf, preprocess_for_ssl
+from cl.data import preprocess_for_ssl, preprocess_for_meta_cf
 from cl.models import FastModel
 from cl.utils import DataPreprocessing
+
 
 
 class DualNet:
@@ -91,19 +92,17 @@ class FastLearner(nn.Module):
 
         return x
 
-    def metal_cf(self, data, epoch):
-        train_dataset, eval_dataset, _ = preprocess_for_meta_cf(
-            data, self.tokenizer, self.args
-        )
+    def meta_cf(self, data, epoch):
+        train_dataset, eval_dataset, _ = preprocess_for_meta_cf(data, self.tokenizer, self.args)
         data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
-
+        
         training_args = TrainingArguments(
             output_dir=self.args.training_args.output_dir,
             learning_rate=self.args.meta_lr,
             per_device_train_batch_size=self.args.meta_batch_size,
             per_device_eval_batch_size=self.args.eval_batch_size,
             num_train_epochs=self.args.meta_epochs,
-            weight_decay=0.01,
+            weight_decay=self.meta_weight_decay,
         )
 
         trainer = Trainer(
