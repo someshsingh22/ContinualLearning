@@ -1,16 +1,16 @@
-from lib2to3.pgen2.tokenize import tokenize
-
 import torch.nn as nn
 from datasets import load_metric
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
+    DataCollatorWithPadding,
     Trainer,
+    TrainingArguments,
     default_data_collator,
 )
 
-from cl.data import preprocess_for_ssl
+from cl.data import preprocess_for_meta_cf, preprocess_for_ssl
 from cl.models import FastModel
 from cl.utils import DataPreprocessing
 
@@ -26,7 +26,7 @@ class DualNet:
         self.slow_learner = SlowLearner(args, tokenizer=self.tokenizer)
         self.slow_learner.resize_token_embeddings(len(self.tokenizer))
 
-        self.fast_learner = FastLearner(args)
+        self.fast_learner = FastLearner(args, tokenizer=self.tokenizer)
 
 
 class SlowLearner(nn.Module):
@@ -51,7 +51,7 @@ class SlowLearner(nn.Module):
             self.preprocessor,
         )
         trainer = Trainer(
-            model=self.slow_learner,
+            model=self,
             args=self.args.training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
@@ -73,10 +73,11 @@ class SlowLearner(nn.Module):
 
 
 class FastLearner(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, tokenizer):
         super(FastLearner, self).__init__()
         self.args = args
 
+        self.tokenizer = tokenizer
         self.lm = FastModel[args.model_args.model_name_or_path].from_pretrained(
             args.model_args.model_name_or_path
         )
@@ -89,3 +90,29 @@ class FastLearner(nn.Module):
         x = self.relu(x)
 
         return x
+
+    def metal_cf(self, data, epoch):
+        train_dataset, eval_dataset, _ = preprocess_for_meta_cf(
+            data, self.tokenizer, self.args
+        )
+        data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
+
+        training_args = TrainingArguments(
+            output_dir=self.args.training_args.output_dir,
+            learning_rate=self.args.meta_lr,
+            per_device_train_batch_size=self.args.meta_batch_size,
+            per_device_eval_batch_size=self.args.eval_batch_size,
+            num_train_epochs=self.args.meta_epochs,
+            weight_decay=0.01,
+        )
+
+        trainer = Trainer(
+            model=self,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            tokenizer=self.tokenizer,
+            data_collator=data_collator,
+        )
+
+        trainer.train()

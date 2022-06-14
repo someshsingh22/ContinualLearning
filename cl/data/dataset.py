@@ -1,16 +1,4 @@
-"""
-text_column_name = "text"
-raw_datasets = load_dataset("clinc_oos", "plus")
-tokenized_datasets = raw_datasets.map(
-    lambda examples: tokenizer(examples[text_column_name]),
-    batched=True,
-    desc="Running tokenizer on dataset",
-)
-block_size = min(tokenizer.model_max_length, 1024)
-"""
-import torch
 from datasets import load_dataset
-from torch.utils.data import DataLoader
 
 
 class MetaLoader(object):
@@ -18,17 +6,19 @@ class MetaLoader(object):
     Generator of datasets for the given dataset.
     """
 
-    def __init__(self, args):
+    def __init__(self, args, tokenizer):
         self.args = args
         self.dataset = load_dataset(
             args.data_args.dataset_name, args.data_args.dataset_config_name
         )
-        self.tasks = []
+        self.tokenizer = tokenizer
+        self.task_datasets = []
         for label in range(0, args.num_classes, args.num_classes_per_loader):
             start, end = label, label + args.num_classes_per_loader
-            self.datasets.append(
-                self.dataset.filter(lambda x: x["intent"] in range(start, end))
+            task_datasets = self.dataset.filter(
+                lambda x: x["intent"] in range(start, end)
             )
+            self.task_datasets.append(task_datasets)
 
     def __getitem__(self, idx):
         return self.datasets[idx]
@@ -37,8 +27,14 @@ class MetaLoader(object):
         return len(self.datasets)
 
 
-def preprocess_for_ssl(tokenized_datasets, Preprocessor):
-    lm_datasets = tokenized_datasets.map(
+def preprocess_for_ssl(task_datasets, Preprocessor, tokenizer, args):
+    tokenized_task_datasets = task_datasets.map(
+        lambda examples: tokenizer(examples[args.text_column_name]),
+        batched=True,
+        desc="Running tokenizer on dataset",
+    )
+
+    lm_datasets = tokenized_task_datasets.map(
         Preprocessor.group_texts,
         batched=True,
         desc=f"Grouping texts in chunks of {Preprocessor.block_size}",
@@ -48,3 +44,19 @@ def preprocess_for_ssl(tokenized_datasets, Preprocessor):
         lm_datasets["validation"],
     )
     return train_dataset, eval_dataset
+
+
+def preprocess_for_meta_cf(task_datasets, tokenizer, args):
+    meta_datasets = task_datasets.map(
+        lambda examples: tokenizer(examples[args.text_column_name], truncation=True),
+        batched=True,
+        desc="Running tokenizer on dataset",
+    )
+
+    train_dataset, eval_dataset, test_dataset = (
+        meta_datasets["train"],
+        meta_datasets["validation"],
+        meta_datasets["test"],
+    )
+
+    return train_dataset, eval_dataset, test_dataset
