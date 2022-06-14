@@ -12,15 +12,12 @@ from transformers import (
 
 from cl.data import preprocess_for_ssl
 from cl.models import FastModel
-from cl.utils import DataPreprocessing, get_args
+from cl.utils import DataPreprocessing
 
 
 class DualNet:
     def __init__(self, args):
         self.args = args
-        args.model_args, args.data_args, args.training_args = get_args(
-            output_dir=args.output_dir, dataset_name=args.dataset_name
-        )
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             args.model_args.model_name_or_path,

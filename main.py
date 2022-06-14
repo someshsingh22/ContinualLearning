@@ -1,8 +1,7 @@
 # Imports
 import argparse
-import random
 
-import learn2learn as l2l
+from cl.utils import get_args
 
 # Global Variables
 
@@ -12,8 +11,10 @@ import learn2learn as l2l
 
 # Arguments
 parser = argparse.ArgumentParser()
-parser.add_argument("--data", type=str, default="./data/")
 args = parser.parse_args()
+args.model_args, args.data_args, args.training_args = get_args(
+    output_dir=args.output_dir, dataset_name=args.dataset_name
+)
 
 # Main
 if __name__ == "__main__":

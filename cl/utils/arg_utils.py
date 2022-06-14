@@ -98,11 +98,11 @@ class DataTrainingArguments:
     """
 
     dataset_name: Optional[str] = field(
-        default=None,
+        default="clinc_oos",
         metadata={"help": "The name of the dataset to use (via the datasets library)."},
     )
     dataset_config_name: Optional[str] = field(
-        default=None,
+        default="plus",
         metadata={
             "help": "The configuration name of the dataset to use (via the datasets library)."
         },

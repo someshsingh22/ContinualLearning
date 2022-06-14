@@ -18,21 +18,17 @@ class MetaLoader(object):
     Generator of datasets for the given dataset.
     """
 
-    def __init__(self, dataset_name, args, test=False):
+    def __init__(self, args):
         self.args = args
-        self.dataset = load_dataset(dataset_name)
-        if test:
-            self.dataset = self.dataset["test"]
+        self.dataset = load_dataset(
+            args.data_args.dataset_name, args.data_args.dataset_config_name
+        )
         self.tasks = []
         for label in range(0, args.num_classes, args.num_classes_per_loader):
             start, end = label, label + args.num_classes_per_loader
-            self.datasets.append(self.create_dataset(start, end, test))
-
-    def create_dataset(self, start, end, test):
-        """
-        Create a dataset for the given label range.
-        """
-        pass
+            self.datasets.append(
+                self.dataset.filter(lambda x: x["intent"] in range(start, end))
+            )
 
     def __getitem__(self, idx):
         return self.datasets[idx]
