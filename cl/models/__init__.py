@@ -1,8 +1,9 @@
-from cl.models.bert import FastBertModel
-from cl.models.gpt import FastGPT2DistilModel
-from cl.models.model import FastLearner, SlowLearner
+from cl.models.bert import FastBertForSequenceClassification
+from cl.models.gpt import FastGPT2DistilForSequenceClassification
 
 FastModel = {
-    "bert-base-uncased": FastBertModel,
-    "distilgpt2": FastGPT2DistilModel,
+    "bert-base-uncased": FastBertForSequenceClassification,
+    "distilgpt2": FastGPT2DistilForSequenceClassification,
 }
+
+from cl.models.model import DualNet

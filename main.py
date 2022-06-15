@@ -1,39 +1,61 @@
 # Imports
 import argparse
 
-from cl.utils import get_args
+from datasets import load_metric
 
 # Global Variables
-
+from cl.data import MetaTaskLoader
+from cl.models import DualNet
+from cl.utils import DataPreprocessing
 
 # Functions
 
 
 # Arguments
 parser = argparse.ArgumentParser()
+parser.add_argument("--output_dir", type=str, default="./results")
+parser.add_argument("--model_name_or_path", type=str, default="bert-base-uncased")
+parser.add_argument("--num_classes", type=int, default=150)
+parser.add_argument("--n_ways", type=int, default=5)
+parser.add_argument("--text_column_name", type=str, default="text")
+parser.add_argument("--max_length", type=int, default=100)
+parser.add_argument("--meta_train_batch_size", type=int, default=32)
+parser.add_argument("--meta_lr", type=float, default=1e-3)
+parser.add_argument("--meta_epochs", type=int, default=1)
+parser.add_argument("--meta_eval_batch_size", type=int, default=32)
+parser.add_argument("--lm_train_batch_size", type=int, default=32)
+parser.add_argument("--lm_lr", type=float, default=1e-3)
+parser.add_argument("--lm_epochs", type=int, default=1)
+parser.add_argument("--lm_eval_batch_size", type=int, default=32)
+parser.add_argument("--dataset_name", type=str, default="clinc_oos")
+parser.add_argument("--dataset_config_name", type=str, default="plus")
+parser.add_argument("--use_fast_tokenizer", action="store_true")
+parser.add_argument("--seed", type=int, default=42)
+parser.add_argument("--meta_weight_decay", type=float, default=0.1)
+
 args = parser.parse_args()
-args.model_args, args.data_args, args.training_args = get_args(
-    output_dir=args.output_dir, dataset_name=args.dataset_name
-)
 
 # Main
 if __name__ == "__main__":
-    # Import AGNews Dataset
-    train_dataset = Dataset("data/data_full.json", "oos_train")
-    test_dataset = Dataset("data/data_full.json", "oos_test")
-    train_data, test_data = l2l.data.MetaDataset(train_dataset), l2l.data.MetaDataset(
-        test_dataset
+    model = DualNet(args)
+    tokenizer = model.tokenizer
+
+    preprocessor = DataPreprocessing(
+        block_size=min(tokenizer.model_max_length, args.max_length),
+        metric=load_metric("accuracy"),
     )
+    MTL = MetaTaskLoader(args, tokenizer=tokenizer)
 
-    transforms = [
-        ContinousNWays(train_data, n_ways=5),
-        l2l.data.transforms.LoadData(train_data),
-    ]
-    train_taskset = TaskDataset(train_data, transforms, num_tasks=n_class // 5)
-    test_taskset = TaskDataset(test_data, transforms, num_tasks=n_class // 5)
+    # Init variables
 
-    # Implement Model
+    for task_id, task in enumerate(MTL):
+        model.slow_learner.ssl_causal_lm(task, epoch=task_id)
 
-    # Implemnet Training Loop
+        ## Train
+        ### SSL
 
-    pass
+        ### DL
+
+        ## Test
+        ### DL
+        pass

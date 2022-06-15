@@ -4,16 +4,15 @@ from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
-    Trainer,
-    default_data_collator,
     DataCollatorWithPadding,
+    Trainer,
     TrainingArguments,
+    default_data_collator,
 )
 
-from cl.data import preprocess_for_ssl, preprocess_for_meta_cf
+from cl.data import preprocess_for_meta_cf, preprocess_for_ssl
 from cl.models import FastModel
 from cl.utils import DataPreprocessing
-
 
 
 class DualNet:
@@ -21,13 +20,15 @@ class DualNet:
         self.args = args
 
         self.tokenizer = AutoTokenizer.from_pretrained(
-            args.model_args.model_name_or_path,
-            use_fast_tokenizer=args.model_args.use_fast_tokenizer,
+            args.model_name_or_path,
+            use_fast_tokenizer=args.use_fast_tokenizer,
         )
         self.slow_learner = SlowLearner(args, tokenizer=self.tokenizer)
-        self.slow_learner.resize_token_embeddings(len(self.tokenizer))
+        self.slow_learner.lm.resize_token_embeddings(len(self.tokenizer))
 
-        self.fast_learner = FastLearner(args, tokenizer=self.tokenizer)
+        self.fast_learner = FastLearner(
+            args, tokenizer=self.tokenizer, slow_learner=self.slow_learner
+        )
 
 
 class SlowLearner(nn.Module):
@@ -35,9 +36,9 @@ class SlowLearner(nn.Module):
         super(SlowLearner, self).__init__()
         self.args = args
 
-        self.config = AutoConfig.from_pretrained(args.model_args.model_name_or_path)
+        self.config = AutoConfig.from_pretrained(args.model_name_or_path)
         self.lm = AutoModelForCausalLM.from_pretrained(
-            args.model_args.model_name_or_path, config=self.config
+            args.model_name_or_path, config=self.config
         )
         self.tokenizer = tokenizer
         self.preprocessor = DataPreprocessing(
@@ -46,14 +47,26 @@ class SlowLearner(nn.Module):
         )
         self.relu = nn.ReLU()
 
+    def ssl_semantic(self):
+        raise NotImplementedError
+
     def ssl_causal_lm(self, data, epoch):
         train_dataset, eval_dataset = preprocess_for_ssl(
-            data,
-            self.preprocessor,
+            data, self.preprocessor, self.tokenizer, self.args
         )
+
+        training_args = TrainingArguments(
+            output_dir=f"{self.args.output_dir}/ssl_causal_lm",
+            num_train_epochs=self.args.lm_epochs,
+            per_device_eval_batch_size=self.args.lm_eval_batch_size,
+            per_device_train_batch_size=self.args.lm_train_batch_size,
+            lr_scheduler_type="cosine",
+            learning_rate=self.args.lm_lr,
+        )
+
         trainer = Trainer(
-            model=self,
-            args=self.args.training_args,
+            model=self.lm,
+            args=training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             tokenizer=self.tokenizer,
@@ -63,9 +76,7 @@ class SlowLearner(nn.Module):
         )
         train_result = trainer.train(resume_from_checkpoint=None)
         metrics = train_result.metrics
-        trainer.log_metrics(f"ssl_lm_epoch_{epoch}", metrics)
-        trainer.save_metrics(f"ssl_lm_epoch_{epoch}", metrics)
-        trainer.save_state()
+        print(metrics, epoch)
 
     def forward(self, input_id, mask):
         _, h, x = self.lm(input_ids=input_id, attention_mask=mask, return_dict=False)
@@ -74,35 +85,41 @@ class SlowLearner(nn.Module):
 
 
 class FastLearner(nn.Module):
-    def __init__(self, args, tokenizer):
+    def __init__(self, args, tokenizer, slow_learner):
         super(FastLearner, self).__init__()
         self.args = args
+        self.slow_learner = slow_learner
 
         self.tokenizer = tokenizer
-        self.lm = FastModel[args.model_args.model_name_or_path].from_pretrained(
-            args.model_args.model_name_or_path
+        self.cf = FastModel[args.model_name_or_path].from_pretrained(
+            args.model_name_or_path,
+            num_labels=args.n_ways,
         )
-        self.linear = nn.Linear(args.h, args.out)
-        self.relu = nn.ReLU()
 
-    def forward(self, input_id, mask):
-        _, x = self.lm(input_ids=input_id, attention_mask=mask, return_dict=False)
-        x = self.linear(x)
-        x = self.relu(x)
-
-        return x
+    def forward(self, input_ids, attention_mask, labels, token_type_ids):
+        _, h = self.slow_learner(input_ids, attention_mask)
+        return self.cf(
+            h,
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            return_dict=False,
+            labels=labels,
+            token_type_ids=token_type_ids,
+        )
 
     def meta_cf(self, data, epoch):
-        train_dataset, eval_dataset, _ = preprocess_for_meta_cf(data, self.tokenizer, self.args)
+        train_dataset, eval_dataset, _ = preprocess_for_meta_cf(
+            data, self.tokenizer, self.args
+        )
         data_collator = DataCollatorWithPadding(tokenizer=self.tokenizer)
-        
+
         training_args = TrainingArguments(
-            output_dir=self.args.training_args.output_dir,
+            output_dir=f"{self.args.output_dir}/meta_cf",
             learning_rate=self.args.meta_lr,
-            per_device_train_batch_size=self.args.meta_batch_size,
-            per_device_eval_batch_size=self.args.eval_batch_size,
+            per_device_train_batch_size=self.args.meta_train_batch_size,
+            per_device_eval_batch_size=self.args.meta_eval_batch_size,
             num_train_epochs=self.args.meta_epochs,
-            weight_decay=self.meta_weight_decay,
+            weight_decay=self.args.meta_weight_decay,
         )
 
         trainer = Trainer(

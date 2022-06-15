@@ -1,30 +1,39 @@
-from datasets import load_dataset
+import datasets
 
 
-class MetaLoader(object):
+class MetaTaskLoader(object):
     """
     Generator of datasets for the given dataset.
     """
 
     def __init__(self, args, tokenizer):
         self.args = args
-        self.dataset = load_dataset(
-            args.data_args.dataset_name, args.data_args.dataset_config_name
+        self.dataset = datasets.load_dataset(
+            args.dataset_name, args.dataset_config_name
         )
         self.tokenizer = tokenizer
         self.task_datasets = []
-        for label in range(0, args.num_classes, args.num_classes_per_loader):
-            start, end = label, label + args.num_classes_per_loader
+
+        def unoffset(example):
+            example["intent"] = [
+                intent % self.args.n_ways for intent in example["intent"]
+            ]
+            return example
+
+        for label in range(0, args.num_classes, args.n_ways):
+            start, end = label, label + args.n_ways
             task_datasets = self.dataset.filter(
                 lambda x: x["intent"] in range(start, end)
             )
+            task_datasets.offset = start
+            task_datasets = task_datasets.map(unoffset, batched=True)
             self.task_datasets.append(task_datasets)
 
     def __getitem__(self, idx):
-        return self.datasets[idx]
+        return self.task_datasets[idx]
 
     def __len__(self):
-        return len(self.datasets)
+        return len(self.task_datasets)
 
 
 def preprocess_for_ssl(task_datasets, Preprocessor, tokenizer, args):
@@ -51,6 +60,9 @@ def preprocess_for_meta_cf(task_datasets, tokenizer, args):
         lambda examples: tokenizer(examples[args.text_column_name], truncation=True),
         batched=True,
         desc="Running tokenizer on dataset",
+    )
+    meta_datasets = meta_datasets.map(
+        lambda examples: {"labels": examples["intent"]}, batched=True
     )
 
     train_dataset, eval_dataset, test_dataset = (

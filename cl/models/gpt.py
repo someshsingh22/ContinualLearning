@@ -1,2 +1,2 @@
-class FastGPT2DistilModel:
+class FastGPT2DistilForSequenceClassification:
     pass
