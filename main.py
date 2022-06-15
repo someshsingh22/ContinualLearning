@@ -1,17 +1,21 @@
 # Imports
 import argparse
+import logging
 
 from datasets import load_metric
 
-# Global Variables
 from cl.data import MetaTaskLoader
 from cl.models import DualNet
 from cl.utils import DataPreprocessing
 
-# Functions
+logging.basicConfig(
+    format="%(asctime)s - %(levelname)s - %(name)s -  %(message)s",
+    datefmt="%m/%d/%Y %H:%M:%S",
+    level=logging.INFO,
+    handlers=[logging.FileHandler("./logs/main.log")],
+)
+logger = logging.getLogger("main")
 
-
-# Arguments
 parser = argparse.ArgumentParser()
 parser.add_argument("--output_dir", type=str, default="./results")
 parser.add_argument("--model_name_or_path", type=str, default="bert-base-uncased")
@@ -34,6 +38,7 @@ parser.add_argument("--lm_eval_batch_size", type=int, default=32)
 parser.add_argument("--use_fast_tokenizer", action="store_true")
 parser.add_argument("--seed", type=int, default=42)
 args = parser.parse_args()
+
 
 # Main
 if __name__ == "__main__":

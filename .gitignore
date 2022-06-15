@@ -1,7 +1,6 @@
 **__pycache__/
 ./data/
-logs/*.txt
-results/*/
+logs/
 **.ipynb
 .vscode/
 runs/

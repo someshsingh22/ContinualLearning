@@ -1,3 +1,5 @@
+import logging
+
 import torch.nn as nn
 from datasets import load_metric
 from transformers import (
@@ -9,11 +11,14 @@ from transformers import (
     Trainer,
     TrainingArguments,
     default_data_collator,
+    logging,
 )
 
 from cl.data import preprocess_for_meta_cf, preprocess_for_ssl
 from cl.models import FastModel
 from cl.utils import DataPreprocessing
+
+logging.set_verbosity_error()
 
 
 class DualNet:

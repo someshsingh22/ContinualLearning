@@ -10,7 +10,7 @@ install:
 clear:
 	find . -name '__pycache__' | xargs rm -r -f
 	find . -name 'DS_Store' | xargs rm -f
-	rm -f logs/*.txt
+	rm -f logs/*.log
 	rm -rf results/test**
 
 freeze:

@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Tuple, Union
 
 import torch
@@ -11,8 +12,10 @@ from transformers.models.bert.modeling_bert import (
     BertEmbeddings,
     BertLayer,
     BertPooler,
-    logger,
+    logging,
 )
+
+logging.set_verbosity_error()
 
 
 class FastBertForSequenceClassification(BertPreTrainedModel):
