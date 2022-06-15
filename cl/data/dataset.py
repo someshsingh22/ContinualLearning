@@ -15,15 +15,15 @@ class MetaTaskLoader(object):
         self.task_datasets = []
 
         def unoffset(example):
-            example["intent"] = [
-                intent % self.args.n_ways for intent in example["intent"]
+            example[args.label_column_name] = [
+                intent % self.args.n_ways for intent in example[args.label_column_name]
             ]
             return example
 
         for label in range(0, args.num_classes, args.n_ways):
             start, end = label, label + args.n_ways
             task_datasets = self.dataset.filter(
-                lambda x: x["intent"] in range(start, end)
+                lambda x: x[args.label_column_name] in range(start, end)
             )
             task_datasets.offset = start
             task_datasets = task_datasets.map(unoffset, batched=True)
@@ -62,7 +62,7 @@ def preprocess_for_meta_cf(task_datasets, tokenizer, args):
         desc="Running tokenizer on dataset",
     )
     meta_datasets = meta_datasets.map(
-        lambda examples: {"labels": examples["intent"]}, batched=True
+        lambda examples: {"labels": examples[args.label_column_name]}, batched=True
     )
 
     train_dataset, eval_dataset, test_dataset = (
