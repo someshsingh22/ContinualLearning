@@ -2,6 +2,7 @@ import torch.nn as nn
 from datasets import load_metric
 from transformers import (
     AutoConfig,
+    AutoModel,
     AutoModelForCausalLM,
     AutoTokenizer,
     DataCollatorWithPadding,
@@ -45,7 +46,6 @@ class SlowLearner(nn.Module):
             block_size=min(tokenizer.model_max_length, args.max_length),
             metric=load_metric("accuracy"),
         )
-        self.relu = nn.ReLU()
 
     def ssl_semantic(self):
         raise NotImplementedError
@@ -79,9 +79,13 @@ class SlowLearner(nn.Module):
         print(metrics, epoch)
 
     def forward(self, input_id, mask):
-        _, h, x = self.lm(input_ids=input_id, attention_mask=mask, return_dict=False)
-        x = self.relu(x)
-        return x, h
+        _, x, h = self.lm.bert(
+            input_ids=input_id,
+            attention_mask=mask,
+            return_dict=False,
+            output_hidden_states=True,
+        )
+        return x, h[1:]
 
 
 class FastLearner(nn.Module):

@@ -49,7 +49,10 @@ if __name__ == "__main__":
     # Init variables
 
     for task_id, task in enumerate(MTL):
+
         model.slow_learner.ssl_causal_lm(task, epoch=task_id)
+        # model.slow_learner.ssl_semantic(task, epoch=task_id)
+        model.fast_learner.meta_cf(task, epoch=task_id)
 
         ## Train
         ### SSL

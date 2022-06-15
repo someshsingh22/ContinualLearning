@@ -210,7 +210,7 @@ class FastBertModel(BertPreTrainedModel):
         # We can provide a self-attention mask of dimensions [batch_size, from_seq_length, to_seq_length]
         # ourselves in which case we just need to make it broadcastable to all heads.
         extended_attention_mask: torch.Tensor = self.get_extended_attention_mask(
-            attention_mask, input_shape
+            attention_mask, input_shape, device=torch.device("cpu")
         )
 
         # If a 2D or 3D attention mask is provided for the cross-attention
@@ -308,7 +308,6 @@ class FastBertEncoder(nn.Module):
         for i, layer_module in enumerate(self.layer):
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
-            layer_module = layer_module + h[i]
             layer_head_mask = head_mask[i] if head_mask is not None else None
             past_key_value = past_key_values[i] if past_key_values is not None else None
 
@@ -336,7 +335,7 @@ class FastBertEncoder(nn.Module):
                 )
             else:
                 layer_outputs = layer_module(
-                    hidden_states,
+                    hidden_states + h[i],
                     attention_mask,
                     layer_head_mask,
                     encoder_hidden_states,

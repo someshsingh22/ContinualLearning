@@ -5,5 +5,4 @@ FastModel = {
     "bert-base-uncased": FastBertForSequenceClassification,
     "distilgpt2": FastGPT2DistilForSequenceClassification,
 }
-
 from cl.models.model import DualNet
