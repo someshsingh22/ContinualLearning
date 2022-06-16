@@ -85,7 +85,7 @@ class SlowLearner(nn.Module):
         print(metrics, epoch)
 
     def forward(self, input_id, mask):
-        _, x, h = self.lm.gpt2(
+        _, x, h = self.lm.transformer(
             input_ids=input_id,
             attention_mask=mask,
             return_dict=False,
@@ -102,14 +102,15 @@ class FastLearner(nn.Module):
 
         self.tokenizer = tokenizer
         self.tokenizer.pad_token = self.tokenizer.eos_token_id
-       
+        
         self.cf = FastModel[args.model_name_or_path].from_pretrained(
             args.model_name_or_path,
             num_labels=args.n_ways,
             
         )
+        self.cf.config.pad_token_id = self.cf.config.eos_token_id
 
-    def forward(self, input_ids, attention_mask, labels, token_type_ids):
+    def forward(self, input_ids, attention_mask, labels,):
         _, h = self.slow_learner(input_ids, attention_mask)
         return self.cf(
             h,
@@ -117,7 +118,8 @@ class FastLearner(nn.Module):
             attention_mask=attention_mask,
             return_dict=False,
             labels=labels,
-            token_type_ids=token_type_ids,
+            
+            
         )
 
     def meta_cf(self, data,epoch,token_type_ids=None):
