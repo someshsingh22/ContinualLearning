@@ -46,6 +46,7 @@ class SlowLearner(nn.Module):
         self.lm = AutoModelForCausalLM.from_pretrained(
             args.model_name_or_path, config=self.config
         )
+        
         self.tokenizer = tokenizer
         self.preprocessor = DataPreprocessing(
             block_size=min(tokenizer.model_max_length, args.max_length),
@@ -84,7 +85,7 @@ class SlowLearner(nn.Module):
         print(metrics, epoch)
 
     def forward(self, input_id, mask):
-        _, x, h = self.lm.bert(
+        _, x, h = self.lm.gpt2(
             input_ids=input_id,
             attention_mask=mask,
             return_dict=False,
@@ -100,9 +101,12 @@ class FastLearner(nn.Module):
         self.slow_learner = slow_learner
 
         self.tokenizer = tokenizer
+        self.tokenizer.pad_token = self.tokenizer.eos_token_id
+       
         self.cf = FastModel[args.model_name_or_path].from_pretrained(
             args.model_name_or_path,
             num_labels=args.n_ways,
+            
         )
 
     def forward(self, input_ids, attention_mask, labels, token_type_ids):
@@ -116,7 +120,7 @@ class FastLearner(nn.Module):
             token_type_ids=token_type_ids,
         )
 
-    def meta_cf(self, data, epoch):
+    def meta_cf(self, data,epoch,token_type_ids=None):
         train_dataset, eval_dataset, _ = preprocess_for_meta_cf(
             data, self.tokenizer, self.args
         )
@@ -129,6 +133,7 @@ class FastLearner(nn.Module):
             per_device_eval_batch_size=self.args.meta_eval_batch_size,
             num_train_epochs=self.args.meta_epochs,
             weight_decay=self.args.meta_weight_decay,
+            
         )
 
         trainer = Trainer(
@@ -138,6 +143,8 @@ class FastLearner(nn.Module):
             eval_dataset=eval_dataset,
             tokenizer=self.tokenizer,
             data_collator=data_collator,
+            
+            
         )
 
         trainer.train()

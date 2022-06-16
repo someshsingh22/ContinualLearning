@@ -1,6 +1,5 @@
 import datasets
 
-
 class MetaTaskLoader(object):
     """
     Generator of datasets for the given dataset.

@@ -1,7 +1,7 @@
 # Imports
 import argparse
 import logging
-
+import datasets
 from datasets import load_metric
 
 from cl.data import MetaTaskLoader
@@ -18,7 +18,7 @@ logger = logging.getLogger("main")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--output_dir", type=str, default="./results")
-parser.add_argument("--model_name_or_path", type=str, default="bert-base-uncased")
+parser.add_argument("--model_name_or_path", type=str, default="distilgpt2")
 parser.add_argument("--dataset_name", type=str, default="clinc_oos")
 parser.add_argument("--dataset_config_name", type=str, default="plus")
 parser.add_argument("--num_classes", type=int, default=150)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     preprocessor = DataPreprocessing(
         block_size=min(tokenizer.model_max_length, args.max_length),
-        metric=load_metric("accuracy"),
+        metric=load_metric("accuracy")
     )
     MTL = MetaTaskLoader(args, tokenizer=tokenizer)
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         model.slow_learner.ssl_causal_lm(task, epoch=task_id)
         # model.slow_learner.ssl_semantic(task, epoch=task_id)
         model.fast_learner.meta_cf(task, epoch=task_id)
-
+        print("1/n/n/n1/n")
         ## Train
         ### SSL
 
