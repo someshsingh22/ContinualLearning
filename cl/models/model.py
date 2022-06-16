@@ -12,10 +12,18 @@ from transformers import (
 )
 
 from cl.data import preprocess_for_meta_cf, preprocess_for_ssl
-from cl.models import FastModel
+from cl.models import (
+    FastBertForSequenceClassification,
+    FastGPT2ForSequenceClassification,
+)
 from cl.utils import DataPreprocessing
 
 logging.set_verbosity_error()
+
+FastModel = {
+    "bert-base-uncased": FastBertForSequenceClassification,
+    "distilgpt2": FastGPT2ForSequenceClassification,
+}
 
 
 class DualNet:
