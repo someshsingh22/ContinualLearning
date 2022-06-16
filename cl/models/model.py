@@ -1,10 +1,7 @@
-import logging
-
 import torch.nn as nn
 from datasets import load_metric
 from transformers import (
     AutoConfig,
-    AutoModel,
     AutoModelForCausalLM,
     AutoTokenizer,
     DataCollatorWithPadding,
@@ -46,7 +43,7 @@ class SlowLearner(nn.Module):
         self.lm = AutoModelForCausalLM.from_pretrained(
             args.model_name_or_path, config=self.config
         )
-        
+
         self.tokenizer = tokenizer
         self.preprocessor = DataPreprocessing(
             block_size=min(tokenizer.model_max_length, args.max_length),
@@ -85,7 +82,11 @@ class SlowLearner(nn.Module):
         print(metrics, epoch)
 
     def forward(self, input_id, mask):
-        _, x, h = self.lm.transformer(
+        if "bert" in self.args.model_name_or_path:
+            lm = self.lm.bert
+        elif "gpt" in self.args.model_name_or_path:
+            lm = self.lm.transformer
+        _, x, h = lm(
             input_ids=input_id,
             attention_mask=mask,
             return_dict=False,
@@ -101,16 +102,16 @@ class FastLearner(nn.Module):
         self.slow_learner = slow_learner
 
         self.tokenizer = tokenizer
-        self.tokenizer.pad_token = self.tokenizer.eos_token_id
-        
+
         self.cf = FastModel[args.model_name_or_path].from_pretrained(
             args.model_name_or_path,
             num_labels=args.n_ways,
-            
         )
-        self.cf.config.pad_token_id = self.cf.config.eos_token_id
+        if "gpt" in self.args.model_name_or_path:
+            self.tokenizer.pad_token = self.tokenizer.eos_token_id
+            self.cf.config.pad_token_id = self.cf.config.eos_token_id
 
-    def forward(self, input_ids, attention_mask, labels,):
+    def forward(self, input_ids, attention_mask, labels, *args):
         _, h = self.slow_learner(input_ids, attention_mask)
         return self.cf(
             h,
@@ -118,11 +119,10 @@ class FastLearner(nn.Module):
             attention_mask=attention_mask,
             return_dict=False,
             labels=labels,
-            
-            
+            *args,
         )
 
-    def meta_cf(self, data,epoch,token_type_ids=None):
+    def meta_cf(self, data, epoch, token_type_ids=None):
         train_dataset, eval_dataset, _ = preprocess_for_meta_cf(
             data, self.tokenizer, self.args
         )
@@ -135,7 +135,6 @@ class FastLearner(nn.Module):
             per_device_eval_batch_size=self.args.meta_eval_batch_size,
             num_train_epochs=self.args.meta_epochs,
             weight_decay=self.args.meta_weight_decay,
-            
         )
 
         trainer = Trainer(
@@ -145,8 +144,6 @@ class FastLearner(nn.Module):
             eval_dataset=eval_dataset,
             tokenizer=self.tokenizer,
             data_collator=data_collator,
-            
-            
         )
 
         trainer.train()
