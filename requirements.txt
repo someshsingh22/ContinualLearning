@@ -1,6 +1,5 @@
 torch
 torchvision
-learn2learn
 numpy
 pandas
 scikit-learn
