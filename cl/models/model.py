@@ -1,4 +1,3 @@
-import numpy as np
 import torch.nn as nn
 from datasets import load_metric
 from transformers import (
