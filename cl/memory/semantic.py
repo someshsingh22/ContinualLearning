@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 
@@ -22,6 +23,13 @@ class GNN(nn.Module):
         # node features from self.embedding
         # get graph
         return {k: v for k, v in self.graph.items() if k in task_vocab}
+
+    def get_subgraph_embedding(self, subgraph) -> torch.Tensor:
+        """
+        subgraph = {'cat': [("mammal", 1, 'is_a')]}
+
+        """
+        raise NotImplementedError
 
     def forward(self, subgraph):
         """
