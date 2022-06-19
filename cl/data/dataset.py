@@ -36,6 +36,12 @@ class MetaTaskLoader(object):
     def __len__(self):
         return len(self.task_datasets)
 
+    def get_vocab():
+        """
+        vocab = set(' '.join((MTL.dataset['train']['text'])).split(' '))
+        """
+        raise NotImplementedError
+
 
 def preprocess_for_ssl(task_datasets, Preprocessor, tokenizer, args):
     tokenized_task_datasets = task_datasets.map(
