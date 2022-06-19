@@ -16,17 +16,18 @@ class MetaTaskLoader(object):
 
         def unoffset(example):
             example[args.label_column_name] = [
-                intent % self.args.n_ways for intent in example[args.label_column_name]
+                intent for intent in example[args.label_column_name]
             ]
             return example
 
-        for label in range(0, args.num_classes, args.n_ways):
+        for label in range(0, args.n_classes, args.n_ways):
             start, end = label, label + args.n_ways
             task_datasets = self.dataset.filter(
                 lambda x: x[args.label_column_name] in range(start, end)
             )
-            task_datasets.offset = start
             task_datasets = task_datasets.map(unoffset, batched=True)
+            task_datasets = task_datasets.shuffle()
+            task_datasets.offset = start
             self.task_datasets.append(task_datasets)
 
     def __getitem__(self, idx):

@@ -31,6 +31,7 @@ class FastBertForSequenceClassification(BertPreTrainedModel):
     def forward(
         self,
         h,
+        class_weight,
         input_ids=None,
         attention_mask=None,
         token_type_ids=None,
@@ -78,7 +79,12 @@ class FastBertForSequenceClassification(BertPreTrainedModel):
                 loss = loss_fct(logits.view(-1), labels.view(-1))
             else:
                 loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                logits = logits.view(-1, self.num_labels)
+                if class_weight is not None:
+                    offset, n_ways = class_weight
+                    logits[:, :offset].data.fill_(-10e10)
+                    logits[:, offset + n_ways :].data.fill_(-10e10)
+                loss = loss_fct(logits, labels.view(-1))
 
         if not return_dict:
             output = (logits,) + outputs[2:]

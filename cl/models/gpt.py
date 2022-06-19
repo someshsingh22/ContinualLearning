@@ -32,6 +32,7 @@ class FastGPT2ForSequenceClassification(GPT2PreTrainedModel):
     def forward(
         self,
         hs,
+        class_weight,
         input_ids: Optional[torch.LongTensor] = None,
         past_key_values: Optional[Tuple[Tuple[torch.Tensor]]] = None,
         attention_mask: Optional[torch.FloatTensor] = None,
@@ -114,9 +115,12 @@ class FastGPT2ForSequenceClassification(GPT2PreTrainedModel):
                     loss = loss_fct(pooled_logits, labels)
             elif self.config.problem_type == "single_label_classification":
                 loss_fct = CrossEntropyLoss()
-                loss = loss_fct(
-                    pooled_logits.view(-1, self.num_labels), labels.view(-1)
-                )
+                pooled_logits = pooled_logits.view(-1, self.num_labels)
+                if class_weight is not None:
+                    offset, n_ways = class_weight
+                    pooled_logits[:, :offset].data.fill_(-10e10)
+                    pooled_logits[:, offset + n_ways :].data.fill_(-10e10)
+                loss = loss_fct(pooled_logits, labels.view(-1))
             elif self.config.problem_type == "multi_label_classification":
                 loss_fct = BCEWithLogitsLoss()
                 loss = loss_fct(pooled_logits, labels)

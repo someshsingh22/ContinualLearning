@@ -1,5 +1,6 @@
 torch
 torchvision
+torchtext==0.10.0
 numpy
 pandas
 scikit-learn

@@ -22,7 +22,7 @@ parser.add_argument("--output_dir", type=str, default="./results")
 parser.add_argument("--model_name_or_path", type=str, default="distilgpt2")
 parser.add_argument("--dataset_name", type=str, default="clinc_oos")
 parser.add_argument("--dataset_config_name", type=str, default="plus")
-parser.add_argument("--num_classes", type=int, default=150)
+parser.add_argument("--n_classes", type=int, default=150)
 parser.add_argument("--n_ways", type=int, default=5)
 parser.add_argument("--text_column_name", type=str, default="text")
 parser.add_argument("--label_column_name", type=str, default="intent")
@@ -37,6 +37,7 @@ parser.add_argument("--lm_lr", type=float, default=1e-3)
 parser.add_argument("--lm_epochs", type=int, default=1)
 parser.add_argument("--lm_eval_batch_size", type=int, default=32)
 parser.add_argument("--use_fast_tokenizer", action="store_true")
+parser.add_argument("--task_aware", action="store_true")
 parser.add_argument("--seed", type=int, default=42)
 args = parser.parse_args()
 
@@ -45,11 +46,6 @@ args = parser.parse_args()
 if __name__ == "__main__":
     model = DualNet(args)
     tokenizer = model.tokenizer
-
-    preprocessor = DataPreprocessing(
-        block_size=min(tokenizer.model_max_length, args.max_length),
-        metric=load_metric("accuracy"),
-    )
     MTL = MetaTaskLoader(args, tokenizer=tokenizer)
 
     # Init variables

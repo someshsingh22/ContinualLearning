@@ -1,13 +1,14 @@
+import numpy as np
 import torch.nn as nn
 from datasets import load_metric
 from transformers import (
     AutoConfig,
     AutoModelForCausalLM,
     AutoTokenizer,
+    DataCollatorForLanguageModeling,
     DataCollatorWithPadding,
     Trainer,
     TrainingArguments,
-    default_data_collator,
     logging,
 )
 
@@ -57,6 +58,11 @@ class SlowLearner(nn.Module):
             block_size=min(tokenizer.model_max_length, args.max_length),
             metric=load_metric("accuracy"),
         )
+        if "gpt" in args.model_name_or_path:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.lm_collator = DataCollatorForLanguageModeling(
+            tokenizer=self.tokenizer, mlm=False
+        )
 
     def ssl_semantic(self):
         raise NotImplementedError
@@ -81,7 +87,7 @@ class SlowLearner(nn.Module):
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             tokenizer=self.tokenizer,
-            data_collator=default_data_collator,
+            data_collator=self.lm_collator,
             compute_metrics=self.preprocessor.compute_metrics,
             preprocess_logits_for_metrics=self.preprocessor.preprocess_logits_for_metrics,
         )
@@ -111,9 +117,11 @@ class FastLearner(nn.Module):
 
         self.tokenizer = tokenizer
 
+        num_labels = args.n_ways if args.task_aware else args.n_classes
+
         self.cf = FastModel[args.model_name_or_path].from_pretrained(
             args.model_name_or_path,
-            num_labels=args.n_ways,
+            num_labels=num_labels,
         )
         if "gpt" in self.args.model_name_or_path:
             self.tokenizer.pad_token = self.tokenizer.eos_token_id
@@ -123,6 +131,7 @@ class FastLearner(nn.Module):
         _, h = self.slow_learner(input_ids, attention_mask)
         return self.cf(
             h,
+            self.class_weights,
             input_ids=input_ids,
             attention_mask=attention_mask,
             return_dict=False,
@@ -145,6 +154,9 @@ class FastLearner(nn.Module):
             weight_decay=self.args.meta_weight_decay,
         )
 
+        self.class_weights = (
+            (data.offset, self.args.n_ways) if self.args.task_aware else None
+        )
         trainer = Trainer(
             model=self,
             args=training_args,
