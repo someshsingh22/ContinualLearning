@@ -1,5 +1,5 @@
 import datasets
-
+from main import MTL
 
 class MetaTaskLoader(object):
     """
@@ -13,6 +13,7 @@ class MetaTaskLoader(object):
         )
         self.tokenizer = tokenizer
         self.task_datasets = []
+        
 
         def unoffset(example):
             example[args.label_column_name] = [
@@ -36,11 +37,7 @@ class MetaTaskLoader(object):
     def __len__(self):
         return len(self.task_datasets)
 
-    def get_vocab():
-        """
-        vocab = set(' '.join((MTL.dataset['train']['text'])).split(' '))
-        """
-        raise NotImplementedError
+
 
 
 def preprocess_for_ssl(task_datasets, Preprocessor, tokenizer, args):

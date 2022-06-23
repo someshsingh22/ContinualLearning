@@ -1,9 +1,21 @@
 # Save request json output
 import json
 import logging
-
 import requests
+import nltk
+from nltk.corpus import stopwords
+nltk.download('stopwords')
+# from nltk.tokenize import word_tokenize
+from main import MTL
 
+def get_vocab(self): 
+    final_vocab = []
+    vocab = set(' '.join((MTL.dataset['train']['text'])).split(' '))
+    for word in vocab:
+        if word not in stopwords.word():
+          final_vocab.append(word)  
+
+    raise NotImplementedError
 
 def save_concept(word):
     try:
