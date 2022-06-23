@@ -47,8 +47,8 @@ if __name__ == "__main__":
     model = DualNet(args)
     tokenizer = model.tokenizer
     MTL = MetaTaskLoader(args, tokenizer=tokenizer)
-
     # Init variables
+    MTL.get_vocab()
 
     for task_id, task in enumerate(MTL):
 
